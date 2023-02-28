@@ -58,25 +58,32 @@ def get_users():
     return Response(all_users, mimetype='application/json'), 200
 
 # PATCH endpoint
-@app.route('/users/<string:discord>', methods=['PATCH'])
-def update_users(discord):
+@app.route('/users', methods=['PATCH'])
+def update_users():
     db = DatabaseManager(database=os.getenv('database'), user=os.getenv('user'), password=os.getenv('password'),
                          host=os.getenv('host'))
     data = request.get_json()
+    discord = data['discord']
     updated_fields = []
+    if not data:
+        return {'error': 'No data provided for update'}, 400
+    
+    if 'discord' in data:
+        updated_fields.append('discord')
+        new_discord = data['discord']
+        db.edit_user_name(discord, new_discord)
 
-    if 'new_discord' in data:
-        updated_fields.append('new_discord')
-        db.edit_user_name(discord, data['new_discord'])
-
-    '''if 'zip' in data:
+    if 'zip' in data:
         updated_fields.append('zip')
-        db.edit_user_city(discord, data['zip'])'''
+        zip = data['zip']
+        city = postcode_to_city(zip)
+        latitude, longitude = get_location_from_city(city)[0], get_location_from_city(city)[1]
+        db.edit_user_city(discord, city, latitude, longitude)
         
-
     if 'stack' in data:
         updated_fields.append('stack')
-        return db.edit_user_stack(discord, data['stack'])
+        stack = data['stack']
+        db.edit_user_stack(discord, stack)
 
     if len(updated_fields) > 0:
         response = jsonify({"message": f"Updated fields: {', '.join(updated_fields)}"}), 200
