@@ -1,34 +1,10 @@
 import os
-import certifi
-import ssl
 from flask import Flask, jsonify, Response, request, render_template
-import geopy.geocoders
-from geopy.geocoders import Nominatim
+from utility_functions.geolocation import postcode_to_city, get_location_from_city
 from db_manager import DatabaseManager
 
 app = Flask(__name__)
 
-ctx = ssl.create_default_context(cafile=certifi.where())
-geopy.geocoders.options.default_ssl_context = ctx
-geolocator = Nominatim(user_agent="z2j_map")
-
-def get_location_from_city(city):
-    location = geolocator.geocode(city)
-    return location.latitude, location.longitude
-
-def postcode_to_city(zip: str):
-    postcode = zip
-    location = geolocator.geocode(postcode, addressdetails=True)
-
-    city_name = None
-    if location.raw["address"].get("city"):
-        city_name = location.raw["address"]["city"]
-    elif location.raw["address"].get("town"):
-        city_name = location.raw["address"]["town"]
-    elif location.raw["address"].get("village"):
-        city_name = location.raw["address"]["village"]
-
-    return city_name
 
 @app.route('/')
 def hello_world():
@@ -46,7 +22,6 @@ def add_user():
     result = Response(db.add_user(username, city_name, field, latitude, longitude), mimetype="application/json")
     db.close_connection() 
     return result, 201
-
 
 # GET endpoint
 @app.route('/users')
