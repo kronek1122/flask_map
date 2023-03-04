@@ -34,20 +34,17 @@ def get_users():
 
 # PATCH endpoint
 @app.route('/users', methods=['PATCH'])
-def update_users():
-    db = DatabaseManager(database=os.getenv('database'), user=os.getenv('user'), password=os.getenv('password'),
-                         host=os.getenv('host'))
+def update_user():
     data = request.get_json()
-    discord = data['discord']
     updated_fields = []
     if not data:
         return {'error': 'No data provided for update'}, 400
+    else:
+        db = DatabaseManager(database=os.getenv('database'), user=os.getenv('user'), password=os.getenv('password'),
+                         host=os.getenv('host'))
     
-    if 'discord' in data:
-        updated_fields.append('discord')
-        new_discord = data['discord']
-        db.edit_user_name(discord, new_discord)
-
+    discord = data['discord']
+    
     if 'zip' in data:
         updated_fields.append('zip')
         zip = data['zip']
@@ -57,10 +54,13 @@ def update_users():
         
     if 'stack' in data:
         updated_fields.append('stack')
-        stack = data['stack']
-        db.edit_user_stack(discord, stack)
+        db.edit_user_stack(discord, data['stack'])
 
-    if len(updated_fields) > 0:
+    if 'new_discord' in data:
+        updated_fields.append('discord')
+        db.edit_user_name(discord, data['new_discord'])
+
+    if updated_fields:
         response = jsonify({"message": f"Updated fields: {', '.join(updated_fields)}"}), 200
     else:
         response = jsonify({"error": "Invalid request."}), 400
@@ -69,7 +69,13 @@ def update_users():
     return response
 
 # DELETE endpoint
-
+@app.route('/users/<username>', methods=['DELETE'])
+def delete_user(username):
+    db = DatabaseManager(database=os.getenv('database'), user=os.getenv('user'), password=os.getenv('password'),
+                         host=os.getenv('host'))
+    result = db.delete_user(username)
+    db.close_connection()
+    return Response(result, mimetype='application/json')
 
 if __name__ == '__main__':
     app.run(debug=True)
